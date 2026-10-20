@@ -20,6 +20,7 @@ from typing import Annotated, Any, Optional
 
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.github import GitHubProvider
+from fastmcp.server.auth import AuthContext
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -106,7 +107,18 @@ def _resolve_limit(limit: str | int | None, max_results: str | int | None) -> in
     else:
         resolved = _coerce_int(limit, "limit", ge=1)
     return min(resolved or 10, 60)
+def only_nexora_owner(ctx: AuthContext) -> bool:
+    token = ctx.token
+    if token is None:
+        return False
 
+    github_username = token.claims.get("login")
+    allowed_username = os.environ["ALLOWED_GITHUB_USER"]
+
+    return (
+        isinstance(github_username, str)
+        and github_username.casefold() == allowed_username.casefold()
+    )
 auth_provider = GitHubProvider(
     client_id=os.environ["GITHUB_CLIENT_ID"],
     client_secret=os.environ["GITHUB_CLIENT_SECRET"],
@@ -141,7 +153,7 @@ mcp = FastMCP(
 # --------------------------------------------------------------------------- #
 
 
-@mcp.tool
+@mcp.tool(auth=only_nexora_owner)
 def search_aliexpress(
     query: Annotated[
         str,
@@ -204,7 +216,7 @@ def search_aliexpress(
     )
 
 
-@mcp.tool
+@mcp.tool(auth=only_nexora_owner)
 def get_aliexpress_product(
     product: Annotated[
         str,
