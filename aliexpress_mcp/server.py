@@ -19,6 +19,7 @@ import os
 from typing import Annotated, Any, Optional
 
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.github import GitHubProvider
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -106,8 +107,16 @@ def _resolve_limit(limit: str | int | None, max_results: str | int | None) -> in
         resolved = _coerce_int(limit, "limit", ge=1)
     return min(resolved or 10, 60)
 
-
+auth_provider = GitHubProvider(
+    client_id=os.environ["GITHUB_CLIENT_ID"],
+    client_secret=os.environ["GITHUB_CLIENT_SECRET"],
+    base_url=os.environ["MCP_PUBLIC_URL"],
+)
 mcp = FastMCP(
+    mcp = FastMCP(
+    name="aliexpress",
+    auth=auth_provider,
+    version="0.3.3",
     name="aliexpress",
     version="0.3.3",  # x-release-please-version
     instructions=(
